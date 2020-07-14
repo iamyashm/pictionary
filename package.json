@@ -4,13 +4,16 @@
   "description": "Online Pictionary Game",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon server.js"
+    "client-install": "npm install --prefix client",
+    "client": "npm start --prefix client",
+    "start": "nodemon server.js",
+    "dev": "concurrently \"npm start\" \"npm run client \""
   },
   "author": "Yash Maniramka",
   "license": "ISC",
   "dependencies": {
+    "concurrently": "^5.2.0",
     "express": "^4.17.1",
-    "p5": "^1.0.0",
     "socket.io": "^2.3.0"
   },
   "devDependencies": {
