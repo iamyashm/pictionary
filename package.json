@@ -1,0 +1,19 @@
+{
+  "name": "pictionary",
+  "version": "1.0.0",
+  "description": "Online Pictionary Game",
+  "main": "server.js",
+  "scripts": {
+    "start": "nodemon server.js"
+  },
+  "author": "Yash Maniramka",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "p5": "^1.0.0",
+    "socket.io": "^2.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.4"
+  }
+}
