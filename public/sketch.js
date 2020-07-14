@@ -1,26 +1,33 @@
 var socket;
+var colorInput, weight;
 
 function setup() {
-    createCanvas(500, 500);
-    background(51);
+    createCanvas(800, 600);
+    background(255);
+    colorInput = document.getElementById('color');
+    weight = document.getElementById('weight');
     socket = io();
     socket.on('mouse', (data) => {
-        noStroke();
-        fill(255, 0, 100);
-        ellipse(data.x, data.y, 40, 40);
+        stroke(data.color);
+        strokeWeight(data.weight);
+        line(data.x, data.y, data.px, data.py);
     });
 }
 
-function mouseDragged() {
-    var data = {
-        x: mouseX, 
-        y: mouseY
-    }
-    socket.emit('mouse', data);
-    noStroke();
-    fill(255);
-    ellipse(mouseX, mouseY, 40, 40);
-}
-
 function draw() {
+    if(mouseIsPressed) {
+        var data = {
+            x: mouseX, 
+            y: mouseY,
+            px: pmouseX,
+            py: pmouseY,
+            color: colorInput.value,
+            weight: weight.value
+        }
+        socket.emit('mouse', data);
+        stroke(colorInput.value);
+        strokeWeight(weight.value);
+        line(mouseX, mouseY, pmouseX, pmouseY);
+    }
+
 }
