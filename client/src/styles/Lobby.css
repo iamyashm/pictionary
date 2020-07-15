@@ -1,0 +1,30 @@
+.Lobby {
+    background-color: rgb(36, 36, 36);
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center ;
+    align-items: center;
+    flex-direction: column;
+}
+
+.Lobby p {
+    color: white;
+    font-size: 30px;
+    font-family: cursive;
+}
+
+.Lobby .gridlist {
+    padding: 4%;
+    width: 50%;
+    height: 60%;
+}
+
+.Lobby .gridlist .gridtile {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: white;
+    font-size: large;
+}
