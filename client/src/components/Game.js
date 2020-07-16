@@ -35,28 +35,6 @@ export class Game extends Component {
         game: null
     }
 
-    componentWillMount() {
-        socket.on('chatMessage', (data) => {
-            this.setState({
-                chats: [...this.state.chats, [data.name, data.message, data.timestamp]]
-            });
-        });
-
-        socket.on('gameUpdate', (data) => {
-            this.setState({
-                game: data.game
-            });
-            console.log(data.game.currWord);
-        });
-
-        socket.on('correctGuess', (data) => {
-            this.props.updatePlayer(data.userId, data.increment);
-            this.setState({
-                correctGuesses: [...this.state.correctGuesses, data.user]
-            });
-        });
-    }
-
     componentDidMount() {
         if (this.props.user === null) { 
             this.setState({
@@ -65,8 +43,24 @@ export class Game extends Component {
         }
         else {
             this.myP5 = new p5(this.Sketch, this.myRef.current);
+
             if (this.props.user.isHost)
                 socket.emit('beginRound', {roomId: this.props.roomId});
+
+            socket.on('chatMessage', (data) => {
+                this.setState({
+                    chats: [...this.state.chats, [data.name, data.message, data.timestamp]]
+                });
+            });
+    
+            socket.on('correctGuess', (data) => {
+                this.props.updatePlayer(data.userId, data.increment);
+                this.setState({
+                    correctGuesses: [...this.state.correctGuesses, data.user],
+                    game: data.game
+                });
+            });
+            
         }
     }
 
@@ -104,12 +98,14 @@ export class Game extends Component {
         }
 
         p.setup = () => {
-            p.createCanvas(800, 600);
+            p.createCanvas(800, 700);
             p.background(255);
             
             colorInput = document.getElementById('color');
             weight = document.getElementById('weight');
             
+            setHeader();
+
             socket.on('mouse', (data) => {
                 p.stroke(data.color);
                 p.strokeWeight(data.weight);
@@ -120,23 +116,51 @@ export class Game extends Component {
                 p.background(255);
             });
 
+            socket.on('gameUpdate', (data) => {
+                this.setState({
+                    game: data.game
+                });
+                console.log(data.game.currWord);
+                let word = '';
+                if (checkUser()) word = data.game.currWord;
+                else {
+                    word = data.game.currWord.replace(/\s/gi, "\xa0 \xa0").replace(/[a-zA-Z]/gi, "_ "); 
+                }
+                setHeader(word);
+            });
+
             socket.on('showRoundStats', (data) => {
+                setHeader();
                 p.background(255);
                 p.noStroke();
                 p.fill(0);
                 p.textSize(30);
                 p.text('All players got it right!', 240, 250);
                 p.text('The word was: ' + data.correctWord, 250, 300);
-                console.log(data.game); 
                 setTimeout(() => {
                     this.setState({ correctGuesses: [], game: data.game });
                     p.background(255);
+                    let word = '';
+                    if (checkUser()) word = data.game.currWord;
+                    else {
+                        word = data.game.currWord.replace(/\s/gi, "\xa0 \xa0").replace(/[a-zA-Z]/gi, "_ "); 
+                    }
+                    setHeader(word);
                 }, 5000);
             });
         }
-        
-        p.draw = () => {
 
+        let setHeader = (word='') => {
+            p.fill(200);
+            p.strokeWeight(3);
+            p.rect(0, 0, 800, 70);
+            p.noStroke();
+            p.fill(0);
+            p.textSize(35);
+            p.text(word, 350, 50);
+        }
+    
+        p.draw = () => {
             if(checkUser() && p.mouseIsPressed) {
                 var data = {
                     x: p.mouseX, 
@@ -146,10 +170,12 @@ export class Game extends Component {
                     color: colorInput.value,
                     weight: weight.value
                 }
-                socket.emit('mouse', data);
-                p.stroke(colorInput.value);
-                p.strokeWeight(weight.value);
-                p.line(p.mouseX, p.mouseY, p.pmouseX, p.pmouseY);
+                if (p.mouseY > 72 && p.pmouseY  > 72 ) {
+                    socket.emit('mouse', data);
+                    p.stroke(colorInput.value);
+                    p.strokeWeight(weight.value);
+                    p.line(p.mouseX, p.mouseY, p.pmouseX, p.pmouseY);
+                }
             }
         }
 

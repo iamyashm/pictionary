@@ -1,8 +1,8 @@
 const express = require('express');
 const path = require('path');
 const socket = require('socket.io');
-
 const {v4: uuidv4} = require('uuid');
+const fs = require('fs');
 
 const app = express();
 
@@ -82,6 +82,8 @@ app.post('/create', (req, res) => {
     return res.json({user: socketToPlayer[socketId].toJson(), roomId: roomId});
 });
 
+var rawdata = fs.readFileSync('wordlist.json');
+var wordlist = JSON.parse(rawdata)['words'];
 
 io.on('connection', (socket) => {
     console.log('New Connection: ' + socket.id);
@@ -113,8 +115,7 @@ io.on('connection', (socket) => {
                 isCorrect = true;
                 socketToPlayer[socket.id].incrementScore(1);
                 roomToGame[roomId].addCorrectGuesser(socket.id);
-                io.to(roomId).emit('correctGuess', {userId: socket.id, increment: 1, user: socketToPlayer[socket.id]});
-                io.to(roomId).emit('gameUpdate', {game: roomToGame[roomId].toJson()});
+                io.to(roomId).emit('correctGuess', {game: roomToGame[roomId].toJson(), userId: socket.id, increment: 1, user: socketToPlayer[socket.id]});
 
                 // Everyone has guessed the word, TODO: or time over
                 if (roomToGame[roomId].correctGuess.length === rooms[roomId].length - 1) {
