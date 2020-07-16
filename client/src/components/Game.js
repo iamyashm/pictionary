@@ -17,6 +17,7 @@ import IconButton from '@material-ui/core/IconButton';
 import CreateIcon from '@material-ui/icons/Create';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import { green } from '@material-ui/core/colors';
+import axios from 'axios';
 
 
 export class Game extends Component {
@@ -45,7 +46,7 @@ export class Game extends Component {
             this.myP5 = new p5(this.Sketch, this.myRef.current);
 
             if (this.props.user.isHost)
-                socket.emit('beginRound', {roomId: this.props.roomId});
+                socket.emit('nextRound', {roomId: this.props.roomId});
 
             socket.on('chatMessage', (data) => {
                 this.setState({
@@ -91,6 +92,9 @@ export class Game extends Component {
       Sketch = (p) => {
         
         let colorInput, weight;
+        let loading = true;
+        let gameState = 'WORD_SELECT';
+        let wordlist = [];
 
         let checkUser = () => {
             return this.state.game !== null && 
@@ -100,12 +104,11 @@ export class Game extends Component {
         p.setup = () => {
             p.createCanvas(800, 700);
             p.background(255);
-            
+            p.textAlign(p.CENTER);
+
             colorInput = document.getElementById('color');
             weight = document.getElementById('weight');
             
-            setHeader();
-
             socket.on('mouse', (data) => {
                 p.stroke(data.color);
                 p.strokeWeight(data.weight);
@@ -116,11 +119,39 @@ export class Game extends Component {
                 p.background(255);
             });
 
-            socket.on('gameUpdate', (data) => {
+            socket.on('beginRound', async (data) => {
+                loading = false;
                 this.setState({
                     game: data.game
                 });
-                console.log(data.game.currWord);
+                console.log(this.state.game);
+                if (checkUser()) {
+                    let response = await axios.get('/words');
+                    wordlist = response.data.words;
+                }
+                gameState = 'WORD_SELECT';
+                p.background(255);
+                p.noStroke();
+                p.fill(0);
+                p.textSize(30);
+                if (checkUser()) {
+                    p.text('Choose a word to draw:', 400, 250);
+                    for (let i = 0; i < 3; i++) {
+                        p.text((i + 1) + '. ' + wordlist[i], 400, 320 + 70 * i);
+                    }
+                }   
+                else {
+                    p.text(this.props.playerList[data.game.currPlayer - 1].name + ' is selecting a word...', 400, 250);
+                }
+                
+            });
+
+            socket.on('beginDraw', (data) => {
+                this.setState({
+                    game: data.game
+                });
+                p.background(255);
+                gameState = 'DRAWING';
                 let word = '';
                 if (checkUser()) word = data.game.currWord;
                 else {
@@ -135,17 +166,14 @@ export class Game extends Component {
                 p.noStroke();
                 p.fill(0);
                 p.textSize(30);
-                p.text('All players got it right!', 240, 250);
-                p.text('The word was: ' + data.correctWord, 250, 300);
+                p.text('All players got it right!', 400, 250);
+                p.text('The word was: ' + data.correctWord, 400, 300);
                 setTimeout(() => {
-                    this.setState({ correctGuesses: [], game: data.game });
+                    this.setState({ correctGuesses: []});
                     p.background(255);
-                    let word = '';
-                    if (checkUser()) word = data.game.currWord;
-                    else {
-                        word = data.game.currWord.replace(/\s/gi, "\xa0 \xa0").replace(/[a-zA-Z]/gi, "_ "); 
-                    }
-                    setHeader(word);
+                    gameState = 'TRANSITION';
+                    if (checkUser())
+                        socket.emit('nextRound', {roomId: this.props.roomId});
                 }, 5000);
             });
         }
@@ -157,11 +185,47 @@ export class Game extends Component {
             p.noStroke();
             p.fill(0);
             p.textSize(35);
-            p.text(word, 350, 50);
+            p.text(word, 400, 50);
         }
     
+        p.mouseClicked = () => {
+            if (gameState === 'WORD_SELECT' && checkUser()) {
+                let selection = null;
+                if (p.mouseX > 250 && p.mouseX < 550) {
+                    if (p.mouseY >= 290 && p.mouseY <= 330) {
+                        selection = wordlist[0];
+                    }
+                    else if (p.mouseY >= 360 && p.mouseY <= 400) {
+                        selection = wordlist[1];
+                    }
+                    else if (p.mouseY >= 430 && p.mouseY <= 470) {
+                        selection = wordlist[2];;
+                    }
+                }
+                if (selection !== null) {
+                    p.cursor(p.ARROW);
+                    socket.emit('wordSelected', {word: selection, roomId: this.props.roomId});
+                }
+            }
+        }
+
         p.draw = () => {
-            if(checkUser() && p.mouseIsPressed) {
+            if (loading === true) {
+                p.background(255);
+                p.noStroke();
+                p.fill(0);
+                p.textSize(35);
+                p.text('Loading....', 220, 250);
+            }
+
+            else if (gameState === 'WORD_SELECT') {
+                if (p.mouseX > 250 && p.mouseX <= 550 && p.mouseY >= 290 && p.mouseY <=470)
+                    p.cursor(p.HAND);
+                else
+                    p.cursor(p.ARROW);
+            }
+
+            else if (gameState === 'DRAWING' && checkUser() && p.mouseIsPressed) {
                 var data = {
                     x: p.mouseX, 
                     y: p.mouseY,
@@ -177,10 +241,14 @@ export class Game extends Component {
                     p.line(p.mouseX, p.mouseY, p.pmouseX, p.pmouseY);
                 }
             }
+
+            else if (gameState === 'TRANSITION') {
+                p.background(255);
+            }
         }
 
         document.getElementById('clear').addEventListener('click', () => {
-            if (checkUser()) {
+            if (gameState === 'DRAWING' && checkUser()) {
                 p.background(255);
                 socket.emit('clear');
             }

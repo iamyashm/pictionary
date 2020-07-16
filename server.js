@@ -26,6 +26,8 @@ const server = app.listen(port, () => {
 });
 const io = socket(server);
 
+var rawdata = fs.readFileSync('wordlist.json');
+var wordlist = JSON.parse(rawdata)['words'];
 
 // @route POST /join
 // @desc Join a room
@@ -82,8 +84,14 @@ app.post('/create', (req, res) => {
     return res.json({user: socketToPlayer[socketId].toJson(), roomId: roomId});
 });
 
-var rawdata = fs.readFileSync('wordlist.json');
-var wordlist = JSON.parse(rawdata)['words'];
+// @route GET /words
+// @desc Get 3 random words
+// @access Public
+app.get('/words', (req, res) => {
+    res.json({words: ['house', 'banana', 'caterpillar']});
+});
+
+
 
 io.on('connection', (socket) => {
     console.log('New Connection: ' + socket.id);
@@ -120,7 +128,7 @@ io.on('connection', (socket) => {
                 // Everyone has guessed the word, TODO: or time over
                 if (roomToGame[roomId].correctGuess.length === rooms[roomId].length - 1) {
                     let correctWord = roomToGame[roomId].currWord;
-                    roomToGame[roomId].nextPlayer();
+                    //roomToGame[roomId].nextPlayer();
                     io.to(roomId).emit('showRoundStats', {game: roomToGame[roomId].toJson(), correctWord: correctWord});
                 }
             }
@@ -136,11 +144,18 @@ io.on('connection', (socket) => {
         }
     });
 
-    //New game beginning
-    socket.on('beginRound', (data) => {
+    // New round beginning
+    socket.on('nextRound', (data) => {
         roomToGame[data.roomId].nextPlayer();
-        io.to(data.roomId).emit('gameUpdate', {game: roomToGame[data.roomId].toJson()});
+        io.to(data.roomId).emit('beginRound', {game: roomToGame[data.roomId].toJson()});
     });
+
+    // Word selected
+    socket.on('wordSelected', (data) => {
+        roomToGame[data.roomId].setCurrWord(data.word);
+        io.to(data.roomId).emit('beginDraw', {game: roomToGame[data.roomId].toJson()});
+    });
+    
 
     // Client disconnected
     socket.on('disconnect', () => {
@@ -162,16 +177,8 @@ class Game {
         this.numPlayers = 0;
     }
 
-    setRandomWord() {
-        // TODO: random words api or something
-        let words = ['hat', 'cat', 'dog', 'house', 'car', 'sun', 'moon', 'orange']; //test data
-        let rndIndex = Math.floor(Math.random() * words.length);
-        return words[rndIndex];
-    }
-
     nextPlayer() {
         this.correctGuess = [];
-        this.currWord = this.setRandomWord();
         this.currPlayer += 1;
         if (this.currPlayer > this.numPlayers) {
             this.currPlayer = 1;
