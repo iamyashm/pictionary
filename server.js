@@ -107,6 +107,12 @@ app.get('/words', (req, res) => {
 });
 
 
+if (process.env.NODE_ENV === 'production') {
+    app.use(express.static('client/build'));
+    app.get('*', (req, res) => {
+        res.sendFile(path.resolve(__dirname, 'client', 'build', 'index.html'));
+    });
+}
 
 
 io.on('connection', (socket) => {
@@ -186,6 +192,7 @@ io.on('connection', (socket) => {
     // Client disconnected
     socket.on('disconnect', () => {
         let roomId = socketToPlayer[socket.id].roomId;
+        delete socketToPlayer[socket.id];
         socket.leave(roomId);
         io.to(roomId).emit('playerDisconnected', {id: socket.id});
     });

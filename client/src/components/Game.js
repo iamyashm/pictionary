@@ -160,7 +160,7 @@ export class Game extends Component {
                 }
                 setHeader(word);
                 startFrame = p.frameCount;
-                time = 5;
+                time = 61;
             });
 
             socket.on('showRoundStats', (data) => {
@@ -171,7 +171,7 @@ export class Game extends Component {
                 p.textSize(30);
                 p.text(data.msg, 400, 250);
                 p.text('The word was: ' + data.correctWord, 400, 300);
-                time = 5;
+                time = 61;
                 gameState = 'SHOW_STATS';
                 startFrame = p.frameCount;
                 time2 = 5;
@@ -232,7 +232,7 @@ export class Game extends Component {
                 p.text('Loading....', 220, 250);
             }
 
-            else if (gameState === 'WORD_SELECT') {
+            else if (checkUser() && gameState === 'WORD_SELECT') {
                 if (p.mouseX > 250 && p.mouseX <= 550 && p.mouseY >= 290 && p.mouseY <=470)
                     p.cursor(p.HAND);
                 else
