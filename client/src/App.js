@@ -38,6 +38,17 @@ class App extends Component {
     this.setState({
       roomId: id
     });
+  }  
+
+  updatePlayer = (sid, inc) => {
+    this.setState({
+      playerList: this.state.playerList.map(player => {
+        if (player.socketId === sid) {
+          player.score += inc;
+        }
+        return player;
+      })
+    });
   }
 
   render() {
@@ -51,7 +62,7 @@ class App extends Component {
         <Route exact path="/lobby" render={(props) => 
         <Lobby {...props} playerList={this.state.playerList} roomId={this.state.roomId} user={this.state.user} />} />
         <Route exact path="/game" render={(props) => 
-        <Game {...props} playerList={this.state.playerList} roomId={this.state.roomId} user={this.state.user} />} />
+        <Game {...props} updatePlayer={this.updatePlayer} playerList={this.state.playerList} roomId={this.state.roomId} user={this.state.user} />} />
         </Switch>
       </Router>
       </div>

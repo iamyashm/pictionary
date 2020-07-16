@@ -7,9 +7,17 @@ import { Redirect } from 'react-router-dom';
 import ListItem from '@material-ui/core/ListItem';
 import ListItemText from '@material-ui/core/ListItemText';
 import List from '@material-ui/core/List';
-import AccountCircle from '@material-ui/icons/AccountCircle';
+import Person from '@material-ui/icons/Person';
 import TextField from '@material-ui/core/TextField';
 import Divider from '@material-ui/core/Divider';
+import ListItemAvatar from '@material-ui/core/ListItemAvatar';
+import Avatar from '@material-ui/core/Avatar';
+import ListItemSecondaryAction from '@material-ui/core/ListItemSecondaryAction';
+import IconButton from '@material-ui/core/IconButton';
+import CreateIcon from '@material-ui/icons/Create';
+import CheckCircleIcon from '@material-ui/icons/CheckCircle';
+import { green } from '@material-ui/core/colors';
+
 
 export class Game extends Component {
     
@@ -21,23 +29,45 @@ export class Game extends Component {
     state = {
         redirectToHome: false,
         input: '',
-        chats: []
+        chats: [],
+        correctGuesses: [],
+        correctWord: '',
+        game: null
     }
 
-    componentDidMount() {
-        socket.on('chatMessage', data => {
+    componentWillMount() {
+        socket.on('chatMessage', (data) => {
             this.setState({
                 chats: [...this.state.chats, [data.name, data.message, data.timestamp]]
             });
         });
 
-        // if (this.props.user === null) { 
-        //     this.setState({
-        //         redirectToHome: true
-        //     });
-        // }
-        // else 
+        socket.on('gameUpdate', (data) => {
+            this.setState({
+                game: data.game
+            });
+            console.log(data.game.currWord);
+        });
+
+        socket.on('correctGuess', (data) => {
+            this.props.updatePlayer(data.userId, data.increment);
+            this.setState({
+                correctGuesses: [...this.state.correctGuesses, data.user]
+            });
+        });
+    }
+
+    componentDidMount() {
+        if (this.props.user === null) { 
+            this.setState({
+                redirectToHome: true
+            });
+        }
+        else {
             this.myP5 = new p5(this.Sketch, this.myRef.current);
+            if (this.props.user.isHost)
+                socket.emit('beginRound', {roomId: this.props.roomId});
+        }
     }
 
     handleChange = (e) => {
@@ -68,6 +98,11 @@ export class Game extends Component {
         
         let colorInput, weight;
 
+        let checkUser = () => {
+            return this.state.game !== null && 
+            ( this.props.user.playerId === this.state.game.currPlayer);
+        }
+
         p.setup = () => {
             p.createCanvas(800, 600);
             p.background(255);
@@ -84,10 +119,25 @@ export class Game extends Component {
             socket.on('clear', () => {
                 p.background(255);
             });
+
+            socket.on('showRoundStats', (data) => {
+                p.background(255);
+                p.noStroke();
+                p.fill(0);
+                p.textSize(30);
+                p.text('All players got it right!', 240, 250);
+                p.text('The word was: ' + data.correctWord, 250, 300);
+                console.log(data.game); 
+                setTimeout(() => {
+                    this.setState({ correctGuesses: [], game: data.game });
+                    p.background(255);
+                }, 5000);
+            });
         }
         
         p.draw = () => {
-            if(p.mouseIsPressed) {
+
+            if(checkUser() && p.mouseIsPressed) {
                 var data = {
                     x: p.mouseX, 
                     y: p.mouseY,
@@ -101,25 +151,44 @@ export class Game extends Component {
                 p.strokeWeight(weight.value);
                 p.line(p.mouseX, p.mouseY, p.pmouseX, p.pmouseY);
             }
-        
         }
 
         document.getElementById('clear').addEventListener('click', () => {
-            p.background(255);
-            socket.emit('clear');
+            if (checkUser()) {
+                p.background(255);
+                socket.emit('clear');
+            }
         });
         
       }
 
     
     render() {
-        if (this.state.redirectToHome) return <Redirect to="/" />
-
+        
+        if (this.state.redirectToHome) return <Redirect to="/" /> 
         let playerList = this.props.playerList.map(player => {
             return (
                 <ListItem key={player.socketId}>
-                    <AccountCircle style={{marginRight:"3%"}} />
-                    <ListItemText primary={player.name} />
+                    <ListItemAvatar>
+                    <Avatar>
+                        <Person color="disabled"/>
+                    </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText primary={player.name} secondary={"Score: " + player.score} 
+                        secondaryTypographyProps={{ style: {color: "grey"} }}
+                    />
+                    <ListItemSecondaryAction>
+                    { this.state.game && player.playerId === this.state.game.currPlayer &&
+                        <IconButton edge="end" aria-label="pencil">
+                        <CreateIcon color="secondary" />
+                        </IconButton>
+                    }
+                    { this.state.game && this.state.game.correctGuess.includes(player.socketId) &&
+                        <IconButton edge="end" aria-label="done">
+                        <CheckCircleIcon  style={{ color: green[500] }} />
+                        </IconButton>
+                    }
+                  </ListItemSecondaryAction>
                 </ListItem>
               );
         })
@@ -134,7 +203,8 @@ export class Game extends Component {
                 <Divider />
                 </React.Fragment>
             );
-        })
+        });
+
         return (
             <div className="Game">
             <div className="playerStats">
