@@ -32,7 +32,6 @@ export class Game extends Component {
         input: '',
         chats: [],
         correctGuesses: [],
-        correctWord: '',
         game: null
     }
 
@@ -95,6 +94,8 @@ export class Game extends Component {
         let loading = true;
         let gameState = 'WORD_SELECT';
         let wordlist = [];
+        let startFrame;
+        let time, time2;
 
         let checkUser = () => {
             return this.state.game !== null && 
@@ -122,9 +123,9 @@ export class Game extends Component {
             socket.on('beginRound', async (data) => {
                 loading = false;
                 this.setState({
-                    game: data.game
+                    game: data.game,
+                    correctGuesses: []
                 });
-                console.log(this.state.game);
                 if (checkUser()) {
                     let response = await axios.get('/words');
                     wordlist = response.data.words;
@@ -158,6 +159,8 @@ export class Game extends Component {
                     word = data.game.currWord.replace(/\s/gi, "\xa0 \xa0").replace(/[a-zA-Z]/gi, "_ "); 
                 }
                 setHeader(word);
+                startFrame = p.frameCount;
+                time = 5;
             });
 
             socket.on('showRoundStats', (data) => {
@@ -166,15 +169,16 @@ export class Game extends Component {
                 p.noStroke();
                 p.fill(0);
                 p.textSize(30);
-                p.text('All players got it right!', 400, 250);
+                p.text(data.msg, 400, 250);
                 p.text('The word was: ' + data.correctWord, 400, 300);
-                setTimeout(() => {
-                    this.setState({ correctGuesses: []});
-                    p.background(255);
-                    gameState = 'TRANSITION';
-                    if (checkUser())
-                        socket.emit('nextRound', {roomId: this.props.roomId});
-                }, 5000);
+                time = 5;
+                gameState = 'SHOW_STATS';
+                startFrame = p.frameCount;
+                time2 = 5;
+            });
+
+            socket.on('timerUpdate', () => {
+                updateTimer();
             });
         }
 
@@ -209,6 +213,16 @@ export class Game extends Component {
             }
         }
 
+        let updateTimer = () => {
+            time -= 1;
+            p.fill(200);
+            p.noStroke();
+            p.rect(0, 0, 70, 70);
+            p.textSize(35);
+            p.fill(0);
+            p.text(time, 35, 35);
+        }
+
         p.draw = () => {
             if (loading === true) {
                 p.background(255);
@@ -225,25 +239,44 @@ export class Game extends Component {
                     p.cursor(p.ARROW);
             }
 
-            else if (gameState === 'DRAWING' && checkUser() && p.mouseIsPressed) {
-                var data = {
-                    x: p.mouseX, 
-                    y: p.mouseY,
-                    px: p.pmouseX,
-                    py: p.pmouseY,
-                    color: colorInput.value,
-                    weight: weight.value
+            else if (gameState === 'DRAWING' && checkUser()) {
+                if (time === 0) {
+                    socket.emit('timeUp', {roomId: this.props.roomId});
                 }
-                if (p.mouseY > 72 && p.pmouseY  > 72 ) {
-                    socket.emit('mouse', data);
-                    p.stroke(colorInput.value);
-                    p.strokeWeight(weight.value);
-                    p.line(p.mouseX, p.mouseY, p.pmouseX, p.pmouseY);
+                else if ((p.frameCount - startFrame) % 60 === 0) {
+                    updateTimer(time);
+                    socket.emit('timerUpdate', {roomId: this.props.roomId});
+                }
+                if (p.mouseIsPressed) {
+                    var data = {
+                        x: p.mouseX, 
+                        y: p.mouseY,
+                        px: p.pmouseX,
+                        py: p.pmouseY,
+                        color: colorInput.value,
+                        weight: weight.value
+                    }
+                    if (p.mouseY > 72 && p.pmouseY  > 72 ) {
+                        socket.emit('mouse', data);
+                        p.stroke(colorInput.value);
+                        p.strokeWeight(weight.value);
+                        p.line(p.mouseX, p.mouseY, p.pmouseX, p.pmouseY);
+                    }
                 }
             }
 
             else if (gameState === 'TRANSITION') {
                 p.background(255);
+            }
+
+            else if (gameState === 'SHOW_STATS') {
+                if ((p.frameCount - startFrame) % 60 === 0) {
+                    time2 -= 1;
+                    if (time2 === 0 && checkUser()) {
+                        gameState = 'TRANSITION';
+                        socket.emit('nextRound', {userId: this.props.user.name, roomId: this.props.roomId});
+                    }
+                }
             }
         }
 

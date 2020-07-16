@@ -29,6 +29,20 @@ const io = socket(server);
 var rawdata = fs.readFileSync('wordlist.json');
 var wordlist = JSON.parse(rawdata)['words'];
 
+// Function that shuffles the input array. Source: https://stackoverflow.com/a/2450976
+function shuffle(array) {
+    var currentIndex = array.length, temporaryValue, randomIndex;
+    while (0 !== currentIndex) {
+      randomIndex = Math.floor(Math.random() * currentIndex);
+      currentIndex -= 1;
+      temporaryValue = array[currentIndex];
+      array[currentIndex] = array[randomIndex];
+      array[randomIndex] = temporaryValue;
+    }
+    return array;
+}
+  
+  
 // @route POST /join
 // @desc Join a room
 // @access Public
@@ -88,8 +102,10 @@ app.post('/create', (req, res) => {
 // @desc Get 3 random words
 // @access Public
 app.get('/words', (req, res) => {
-    res.json({words: ['house', 'banana', 'caterpillar']});
+    shuffle(wordlist);
+    res.json({words: [wordlist[3], wordlist[197], wordlist[1071]]}); // Selecting 3 elements, choice of index is arbitrary
 });
+
 
 
 
@@ -125,11 +141,11 @@ io.on('connection', (socket) => {
                 roomToGame[roomId].addCorrectGuesser(socket.id);
                 io.to(roomId).emit('correctGuess', {game: roomToGame[roomId].toJson(), userId: socket.id, increment: 1, user: socketToPlayer[socket.id]});
 
-                // Everyone has guessed the word, TODO: or time over
+                // Everyone has guessed the word
                 if (roomToGame[roomId].correctGuess.length === rooms[roomId].length - 1) {
                     let correctWord = roomToGame[roomId].currWord;
-                    //roomToGame[roomId].nextPlayer();
-                    io.to(roomId).emit('showRoundStats', {game: roomToGame[roomId].toJson(), correctWord: correctWord});
+                    io.to(roomId).emit('showRoundStats', {
+                        correctWord: correctWord, msg: 'All players guessed the word!'});
                 }
             }
         }
@@ -146,6 +162,7 @@ io.on('connection', (socket) => {
 
     // New round beginning
     socket.on('nextRound', (data) => {
+        console.log('Next round msg from ' + data.userId);
         roomToGame[data.roomId].nextPlayer();
         io.to(data.roomId).emit('beginRound', {game: roomToGame[data.roomId].toJson()});
     });
@@ -156,6 +173,15 @@ io.on('connection', (socket) => {
         io.to(data.roomId).emit('beginDraw', {game: roomToGame[data.roomId].toJson()});
     });
     
+    // Timer update 
+    socket.on('timerUpdate', (data) => {
+        socket.broadcast.to(data.roomId).emit('timerUpdate');
+    });
+
+    socket.on('timeUp', (data) => {
+        let correctWord = roomToGame[data.roomId].currWord;
+        io.to(data.roomId).emit('showRoundStats', { correctWord: correctWord, msg: 'Time Up!'})
+    });
 
     // Client disconnected
     socket.on('disconnect', () => {
@@ -169,7 +195,7 @@ io.on('connection', (socket) => {
 
 class Game {
     constructor(currRound, currPlayer, host) {
-        this.currRound = 0;
+        this.currRound = 1;
         this.currPlayer = 0;
         this.currWord = null;
         this.correctGuess = null;

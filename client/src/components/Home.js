@@ -41,7 +41,6 @@ export class Home extends Component {
         else {
             try {
                 let res = await axios.post('/join', {socketId: socket.id, roomId: this.state.roomId.trim(), name: this.state.name.trim()});
-                console.log(res.data);
                 this.props.changeUser(res.data.user);
                 this.props.changeRoomId(res.data.roomId);
                 this.setState({
@@ -72,7 +71,6 @@ export class Home extends Component {
         else {
             try {
                 let res = await axios.post('/create', {socketId: socket.id, name: this.state.name.trim()});
-                console.log(res);
                 this.props.changeUser(res.data.user);
                 this.props.changeRoomId(res.data.roomId);
                 this.setState({
