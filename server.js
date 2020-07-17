@@ -168,9 +168,15 @@ io.on('connection', (socket) => {
 
     // New round beginning
     socket.on('nextRound', (data) => {
-        console.log('Next round msg from ' + data.userId);
         roomToGame[data.roomId].nextPlayer();
-        io.to(data.roomId).emit('beginRound', {game: roomToGame[data.roomId].toJson()});
+        let artist;
+        for (let p of rooms[data.roomId]) {
+            if (socketToPlayer[p].playerId === roomToGame[data.roomId].currPlayer) {
+                artist = socketToPlayer[p].name;
+                break;
+            }
+        }
+        io.to(data.roomId).emit('beginRound', {game: roomToGame[data.roomId].toJson(), artist: artist});
     });
 
     // Word selected
@@ -192,9 +198,46 @@ io.on('connection', (socket) => {
     // Client disconnected
     socket.on('disconnect', () => {
         let roomId = socketToPlayer[socket.id].roomId;
+        let name = socketToPlayer[socket.id].name;
+        if (roomId) {
+            rooms[roomId] = rooms[roomId].filter(user => {
+                return user !== socket.id;
+            });
+            socket.leave(roomId);
+            if (rooms[roomId].length < 2) {
+                for (let player of rooms[roomId]) 
+                    socketToPlayer[player].roomId = null;
+                
+                delete rooms[roomId];
+                io.to(roomId).emit('endgame');
+            }
+            else {
+                
+                io.to(roomId).emit('playerDisconnected', {id: socket.id});
+                io.to(roomId).emit('chatMessage', {
+                    name: 'Server', 
+                    message: name + ' has disconnected.', 
+                    timestamp: new Date().getTime()
+                });
+                
+                // Add disconnected player to skip list
+                roomToGame[roomId].addSkip(socketToPlayer[socket.id].playerId, socket.id);
+
+                // If the player currently drawing disconnects, change turns
+                if (roomToGame[roomId].currPlayer === socketToPlayer[socket.id].playerId) {
+                    roomToGame[roomId].nextPlayer();
+                    let artist;
+                    for (let p of rooms[roomId]) {
+                        if (socketToPlayer[p].playerId === roomToGame[roomId].currPlayer) {
+                            artist = socketToPlayer[p].name;
+                            break;
+                        }
+                    }
+                    io.to(roomId).emit('beginRound', {game: roomToGame[roomId].toJson(), artist: artist});
+                }
+            }
+        }
         delete socketToPlayer[socket.id];
-        socket.leave(roomId);
-        io.to(roomId).emit('playerDisconnected', {id: socket.id});
     });
 
 
@@ -207,6 +250,7 @@ class Game {
         this.currWord = null;
         this.correctGuess = null;
         this.host = host;
+        this.skipList = []
         this.numPlayers = 0;
     }
 
@@ -214,8 +258,15 @@ class Game {
         this.correctGuess = [];
         this.currPlayer += 1;
         if (this.currPlayer > this.numPlayers) {
-            this.currPlayer = 1;
             this.currRound += 1;
+            this.currPlayer %= this.numPlayers;
+        }
+        while (this.skipList.includes(this.currPlayer)) {
+            this.currPlayer += 1;
+            if (this.currPlayer > this.numPlayers) {
+                this.currRound += 1;
+                this.currPlayer %= this.numPlayers;
+            }
         }
     }
 
@@ -223,6 +274,13 @@ class Game {
         if (this.correctGuess && this.correctGuess.includes(socketId))
             return true;
         return false;
+    }
+    
+    addSkip(id, sId) {
+        this.skipList.push(id);
+        this.correctGuess.filter(s => {
+            return s !== sId;
+        })
     }
 
     setCurrPlayer(player) {

@@ -60,6 +60,10 @@ export class Game extends Component {
                     game: data.game
                 });
             });
+
+            socket.on('playerDisconnected', (data) => {
+                this.props.removePlayer(data.id);
+            });
             
         }
     }
@@ -80,7 +84,8 @@ export class Game extends Component {
     }
 
     scrollToBottom = () => {
-        this.messagesEnd.scrollIntoView({ behavior: "smooth" });
+        if (this.messagesEnd)
+            this.messagesEnd.scrollIntoView({ behavior: "smooth" });
     }
       
       
@@ -142,7 +147,7 @@ export class Game extends Component {
                     }
                 }   
                 else {
-                    p.text(this.props.playerList[data.game.currPlayer - 1].name + ' is selecting a word...', 400, 250);
+                    p.text(data.artist + ' is selecting a word...', 400, 250);
                 }
                 
             });
@@ -179,6 +184,13 @@ export class Game extends Component {
 
             socket.on('timerUpdate', () => {
                 updateTimer();
+            });
+
+            socket.on('endgame', (data) => {
+                this.setState({
+                    redirectToHome: true
+                })
+                alert('Game terminated since players have disconnected');
             });
         }
 
@@ -274,7 +286,7 @@ export class Game extends Component {
                     time2 -= 1;
                     if (time2 === 0 && checkUser()) {
                         gameState = 'TRANSITION';
-                        socket.emit('nextRound', {userId: this.props.user.name, roomId: this.props.roomId});
+                        socket.emit('nextRound', { roomId: this.props.roomId});
                     }
                 }
             }

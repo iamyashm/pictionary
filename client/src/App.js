@@ -18,14 +18,6 @@ class App extends Component {
         playerList: data.playerList,
       });
     });
-
-    socket.on('playerDisconnected', (data) => {
-      this.setState({
-        playerList: this.state.playerList.filter(player => {
-          return player.socketId !== data.id;
-        })
-      });
-    });
   }
 
   changeUser = (user) => {
@@ -51,6 +43,14 @@ class App extends Component {
     });
   }
 
+  removePlayer = (id) => {
+    this.setState({
+      playerList: this.state.playerList.filter(player => {
+        return player.socketId !== id;
+      })
+    });
+  }
+
   render() {
     return (
       
@@ -62,7 +62,8 @@ class App extends Component {
         <Route exact path="/lobby" render={(props) => 
         <Lobby {...props} playerList={this.state.playerList} roomId={this.state.roomId} user={this.state.user} />} />
         <Route exact path="/game" render={(props) => 
-        <Game {...props} updatePlayer={this.updatePlayer} playerList={this.state.playerList} roomId={this.state.roomId} user={this.state.user} />} />
+        <Game {...props} 
+          removePlayer={this.removePlayer} updatePlayer={this.updatePlayer} playerList={this.state.playerList} roomId={this.state.roomId} user={this.state.user} />} />
         </Switch>
       </Router>
       </div>
