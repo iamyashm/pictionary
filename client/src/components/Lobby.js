@@ -25,9 +25,6 @@ export class Lobby extends Component {
 
     startHandler = (e) => {
         socket.emit('startGame');
-        this.setState({
-            startGame: true
-        });
     }
 
     handleCopy = (e) => {

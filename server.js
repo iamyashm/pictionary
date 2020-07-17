@@ -122,7 +122,8 @@ io.on('connection', (socket) => {
     // Host starts game
     socket.on('startGame', () => {
         let roomId = socketToPlayer[socket.id].roomId;
-        socket.broadcast.to(roomId).emit('startGame');
+        if (roomToGame[roomId].numPlayers > 1)
+            io.to(roomId).emit('startGame');
     });
 
     // Client drawing on canvas
@@ -172,7 +173,7 @@ io.on('connection', (socket) => {
         roomToGame[data.roomId].nextPlayer();
     
         // End game after 3 rounds, show leaderboard
-        if (roomToGame[data.roomId].currRound >= 2) {
+        if (roomToGame[data.roomId].currRound >= 4) {
             io.to(data.roomId).emit('leaderboard');
 
             // Clear room data for players
