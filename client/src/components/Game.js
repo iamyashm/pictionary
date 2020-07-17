@@ -52,14 +52,7 @@ export class Game extends Component {
                     chats: [...this.state.chats, [data.name, data.message, data.timestamp]]
                 });
             });
-    
-            socket.on('correctGuess', (data) => {
-                this.props.updatePlayer(data.userId, data.increment);
-                this.setState({
-                    correctGuesses: [...this.state.correctGuesses, data.user],
-                    game: data.game
-                });
-            });
+
 
             socket.on('playerDisconnected', (data) => {
                 this.props.removePlayer(data.id);
@@ -186,6 +179,37 @@ export class Game extends Component {
                 updateTimer();
             });
 
+            socket.on('correctGuess', (data) => {
+                this.props.updatePlayer(data.userId, time);
+                this.setState({
+                    correctGuesses: [...this.state.correctGuesses, data.user],
+                    game: data.game
+                });
+            });
+
+            socket.on('leaderboard', (data) => {
+                gameState = 'LEADERBOARD';
+                time2 = 8;
+                startFrame = p.frameCount;
+                p.background(255);
+                p.noStroke();
+                p.fill(0);
+                p.textSize(35);
+                p.text('LEADERBOARD', 400, 100);
+                p.textSize(25);
+                let leaderboard = this.props.playerList;
+                
+                // Sort users by score
+                leaderboard.sort(function(a, b) {
+                    if (a.score < b.score) return -1;
+                    if (a.score > b.score) return 1;
+                    return 0;
+                });
+                for (let i = 0; i < leaderboard.length; i++) {
+                    p.text((i + 1) + '. ' + leaderboard[i].name + ' : ' + leaderboard[i].score + ' pts.', 400, 150 + 50 * i);
+                }
+            });
+
             socket.on('endgame', (data) => {
                 this.setState({
                     redirectToHome: true
@@ -290,6 +314,18 @@ export class Game extends Component {
                     }
                 }
             }
+
+            else if (gameState === 'LEADERBOARD') {
+                if ((p.frameCount - startFrame) % 60 === 0) {
+                    time2 -= 1;
+                    if (time2 === 0) {
+                        this.setState({
+                            redirectToHome: true
+                        });
+                    }
+                }
+            }
+
         }
 
         document.getElementById('clear').addEventListener('click', () => {

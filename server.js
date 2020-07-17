@@ -121,7 +121,8 @@ io.on('connection', (socket) => {
 
     // Host starts game
     socket.on('startGame', () => {
-        socket.broadcast.to(socketToPlayer[socket.id].roomId).emit('startGame');
+        let roomId = socketToPlayer[socket.id].roomId;
+        socket.broadcast.to(roomId).emit('startGame');
     });
 
     // Client drawing on canvas
@@ -145,7 +146,7 @@ io.on('connection', (socket) => {
                 isCorrect = true;
                 socketToPlayer[socket.id].incrementScore(1);
                 roomToGame[roomId].addCorrectGuesser(socket.id);
-                io.to(roomId).emit('correctGuess', {game: roomToGame[roomId].toJson(), userId: socket.id, increment: 1, user: socketToPlayer[socket.id]});
+                io.to(roomId).emit('correctGuess', {game: roomToGame[roomId].toJson(), userId: socket.id, user: socketToPlayer[socket.id]});
 
                 // Everyone has guessed the word
                 if (roomToGame[roomId].correctGuess.length === rooms[roomId].length - 1) {
@@ -169,14 +170,28 @@ io.on('connection', (socket) => {
     // New round beginning
     socket.on('nextRound', (data) => {
         roomToGame[data.roomId].nextPlayer();
-        let artist;
-        for (let p of rooms[data.roomId]) {
-            if (socketToPlayer[p].playerId === roomToGame[data.roomId].currPlayer) {
-                artist = socketToPlayer[p].name;
-                break;
-            }
+    
+        // End game after 3 rounds, show leaderboard
+        if (roomToGame[data.roomId].currRound >= 2) {
+            io.to(data.roomId).emit('leaderboard');
+
+            // Clear room data for players
+            for (p of rooms[data.roomId])
+                socketToPlayer[p].reset();
+            delete rooms[data.roomId];
+            delete roomToGame[data.roomId];
+
         }
-        io.to(data.roomId).emit('beginRound', {game: roomToGame[data.roomId].toJson(), artist: artist});
+        else {
+            let artist;
+            for (let p of rooms[data.roomId]) {
+                if (socketToPlayer[p].playerId === roomToGame[data.roomId].currPlayer) {
+                    artist = socketToPlayer[p].name;
+                    break;
+                }
+            }
+            io.to(data.roomId).emit('beginRound', {game: roomToGame[data.roomId].toJson(), artist: artist});
+        }
     });
 
     // Word selected
@@ -325,6 +340,13 @@ class Player {
 
     incrementScore(value) {
         this.score += value;
+    }
+
+    reset() {
+        this.playerId = null;
+        this.roomId = null;
+        this.isHost = false;
+        this.score = 0;
     }
 
     toJson() {
