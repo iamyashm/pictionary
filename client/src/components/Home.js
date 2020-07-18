@@ -5,6 +5,41 @@ import '../styles/Home.css';
 import axios from 'axios';
 import socket from '../service/socket';
 import { Redirect } from 'react-router-dom';
+import { withStyles } from '@material-ui/core/styles';
+
+const StyledButton = withStyles({
+    root: {
+      background: 'linear-gradient(45deg, #FE6B8B 30%, #ff5353 90%)',
+      borderRadius: 3,
+      border: 0,
+      color: 'white',
+      height: 48,
+      padding: '0 30px',
+      boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)'
+    },
+  })(Button);
+
+const StyledTextField = withStyles({
+root: {
+    '& label.Mui-focused': {
+    color: 'white',
+    },
+    '& .MuiInput-underline:after': {
+    borderBottomColor: "rgba(255, 180, 180, 0.8)",
+    },
+    '& .MuiOutlinedInput-root': {
+    '& fieldset': {
+        borderColor: 'rgba(200, 200, 200, 0.8)',
+    },
+    '&:hover fieldset': {
+        borderColor: 'rgba(200, 200, 200, 0.8)',
+    },
+    '&.Mui-focused fieldset': {
+        borderColor: "rgba(255, 180, 180, 0.8)",
+    },
+    },
+},
+})(TextField);
 
 export class Home extends Component {
     state = {
@@ -93,17 +128,46 @@ export class Home extends Component {
         return (
             <div className="HomeContainer">
                 <div className="Home">
-                <Container className="container">
                 <p>PICTIONARY</p>
+                <Container className="container">
                 <form noValidate autoComplete="off">
-                        <TextField  onChange={this.changeHandler} name="name" label="Name" variant="outlined" style={{marginBottom: "20px", width: "100%"}} />
-                        <TextField onChange={this.changeHandler} name="roomId" label="Room ID" variant="outlined" style={{marginBottom: "20px", width: "70%"}} />
-                        <Button onClick={this.joinHandler} variant="contained" color="primary" size="large" style={{marginLeft: "5%", width: "20%", marginTop: "1%"}}>
-                            Join
-                        </Button>
-                        <Button onClick={this.createHandler} variant="contained" size="large" color="primary" style={{ width: "100%", marginBottom: "5%"}}>
-                            Create new room
-                        </Button>
+                        <StyledTextField  
+                            inputProps={{ style: { color: 'white'}}}
+                            InputLabelProps={{ style: { color: 'rgba(255, 255, 255, 0.5)'}}}
+                            error={this.state.showNameError}
+                            onChange={this.changeHandler} 
+                            name="name" 
+                            label="Name" 
+                            variant="outlined" 
+                            style={{marginBottom: "20px", width: "100%"}} 
+                        />
+                        <StyledTextField 
+                            inputProps={{ style: { color: 'white'}}}
+                            InputLabelProps={{ style: { color: 'rgba(255, 255, 255, 0.5)'}}}
+                            error={this.state.showRoomError}
+                            onChange={this.changeHandler} 
+                            name="roomId" 
+                            label="Room ID" 
+                            variant="outlined" 
+                            style={{marginBottom: "20px", width: "75%"}} 
+                        />
+                        <StyledButton 
+                            onClick={this.joinHandler} 
+                            variant="contained" 
+                            size="large" 
+                            style={{marginLeft: "4%", width: "20%", marginTop: "1%", marginRight: "0%"}}>
+                            JOIN
+                        </StyledButton>
+                        <div className="strike">
+                            <span>OR</span>
+                        </div>
+                        <StyledButton 
+                            onClick={this.createHandler} 
+                            variant="contained" 
+                            size="large" 
+                            style={{ width: "100%", marginBottom: "5%"}}>
+                            CREATE NEW ROOM
+                        </StyledButton>
                         {this.state.showNameError && 
                         <Alert id="name-error" severity="error">Name cannot be empty</Alert> }
                         

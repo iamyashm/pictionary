@@ -8,6 +8,21 @@ import { Redirect } from 'react-router-dom';
 import socket from '../service/socket';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
 import { pink } from '@material-ui/core/colors';
+import { withStyles } from '@material-ui/core/styles';
+
+const StyledButton = withStyles({
+    root: {
+      background: 'linear-gradient(45deg, #FE6B8B 30%, #ff5353 90%)',
+      borderRadius: 3,
+      border: 0,
+      color: 'white',
+      height: 48,
+      padding: '0 30px',
+      boxShadow: '0 3px 5px 2px rgba(255, 105, 135, .3)'
+    },
+  })(Button);
+
+
 
 export class Lobby extends Component {
 
@@ -45,7 +60,7 @@ export class Lobby extends Component {
             return (
                 <GridListTile key={player.socketId} className="gridtile" cols={1}>
                 <i className="fa fa-user-circle-o fa-4x" aria-hidden="true"></i>
-                <p>{ player.name }</p>
+                <p className="playerNames">{ player.name }</p>
                 </GridListTile>
             );
         });
@@ -53,18 +68,22 @@ export class Lobby extends Component {
             <div className="Lobby">       
                 <div className="head">
                     <p>Room ID: {this.props.roomId}</p> 
-                    <IconButton onClick={this.handleCopy}>
-                        <FileCopyIcon style={{ color: pink[50] }} />
-                    </IconButton>
+                    <Button
+                        onClick={this.handleCopy}
+                        startIcon={<FileCopyIcon style={{ color: pink[200] }}/>}
+                        style={{ color: pink[200] }}
+                    >
+                        Copy
+                    </Button>
                 </div> 
                 <GridList className="gridlist" cols={6}>
                     {playerGrid}
                 </GridList>
                 
                 {this.props.user.isHost && 
-                <Button onClick={this.startHandler} variant="contained" size="large" color="secondary" style={{marginBottom: "5%"}}>
+                <StyledButton className="startButton" onClick={this.startHandler} variant="contained" size="large" color="secondary" style={{marginBottom: "5%"}}>
                     Start
-                </Button> }
+                </StyledButton> }
             </div>
         )
     }
