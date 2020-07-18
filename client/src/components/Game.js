@@ -115,7 +115,9 @@ export class Game extends Component {
             });
 
             socket.on('clear', () => {
-                p.background(255);
+                p.noStroke();
+                p.fill(255);
+                p.rect(0, 70, 800, 630);
             });
 
             socket.on('beginRound', async (data) => {
@@ -158,7 +160,7 @@ export class Game extends Component {
                 }
                 setHeader(word);
                 startFrame = p.frameCount;
-                time = 61;
+                time = 91;
             });
 
             socket.on('showRoundStats', (data) => {
@@ -169,7 +171,7 @@ export class Game extends Component {
                 p.textSize(30);
                 p.text(data.msg, 400, 250);
                 p.text('The word was: ' + data.correctWord, 400, 300);
-                time = 61;
+                time = 91;
                 gameState = 'SHOW_STATS';
                 startFrame = p.frameCount;
                 time2 = 5;
@@ -330,7 +332,9 @@ export class Game extends Component {
 
         document.getElementById('clear').addEventListener('click', () => {
             if (gameState === 'DRAWING' && checkUser()) {
-                p.background(255);
+                p.noStroke();
+                p.fill(255);
+                p.rect(0, 70, 800, 630);
                 socket.emit('clear');
             }
         });
