@@ -401,7 +401,7 @@ export class Game extends Component {
                             <input type="range" id="weight" min="2" max="50" defaultValue="10" />
                         </li>
                         <li>
-                            <button id="clear"><i className="fa fa-trash"></i></button>
+                            <button id="clear"><i className="fa fa-trash"></i>Clear</button>
                         </li>
                     </ul>
                 </div>

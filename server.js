@@ -141,7 +141,7 @@ io.on('connection', (socket) => {
         let roomId = socketToPlayer[socket.id].roomId;
         let isCorrect = false;
         // Checking if guess was correct
-        if (roomToGame[roomId].currWord.toLowerCase() === data.message.toLowerCase()) {
+        if (roomToGame[roomId].currWord && roomToGame[roomId].currWord.toLowerCase() === data.message.toLowerCase()) {
             if (!roomToGame[roomId].hasGuessed(socket.id) &&
             socketToPlayer[socket.id].playerId !== roomToGame[roomId].currPlayer) {
                 isCorrect = true;
