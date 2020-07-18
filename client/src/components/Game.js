@@ -203,8 +203,8 @@ export class Game extends Component {
                 
                 // Sort users by score
                 leaderboard.sort(function(a, b) {
-                    if (a.score < b.score) return -1;
-                    if (a.score > b.score) return 1;
+                    if (a.score > b.score) return -1;
+                    if (a.score < b.score) return 1;
                     return 0;
                 });
                 for (let i = 0; i < leaderboard.length; i++) {

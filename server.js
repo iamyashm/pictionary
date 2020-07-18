@@ -128,77 +128,97 @@ io.on('connection', (socket) => {
 
     // Client drawing on canvas
     socket.on('mouse', (data) => {
-        socket.broadcast.to(socketToPlayer[socket.id].roomId).emit('mouse', data);
+        try {
+           socket.broadcast.to(socketToPlayer[socket.id].roomId).emit('mouse', data);
+        } catch(e) {
+            console.log(e);
+        }
     });
 
     // Client clearing canvas
     socket.on('clear', () => {
-        socket.broadcast.to(socketToPlayer[socket.id].roomId).emit('clear');
+        try {
+            socket.broadcast.to(socketToPlayer[socket.id].roomId).emit('clear');
+        } catch(e) {
+            console.log(e);
+        }
     });
 
     // New guess message
     socket.on('chatMessage', (data) => {
-        let roomId = socketToPlayer[socket.id].roomId;
-        let isCorrect = false;
-        // Checking if guess was correct
-        if (roomToGame[roomId].currWord && roomToGame[roomId].currWord.toLowerCase() === data.message.toLowerCase()) {
-            if (!roomToGame[roomId].hasGuessed(socket.id) &&
-            socketToPlayer[socket.id].playerId !== roomToGame[roomId].currPlayer) {
-                isCorrect = true;
-                socketToPlayer[socket.id].incrementScore(1);
-                roomToGame[roomId].addCorrectGuesser(socket.id);
-                io.to(roomId).emit('correctGuess', {game: roomToGame[roomId].toJson(), userId: socket.id, user: socketToPlayer[socket.id]});
+        try {
+            let roomId = socketToPlayer[socket.id].roomId;
+            let isCorrect = false;
+            // Checking if guess was correct
+            if (roomToGame[roomId].currWord && roomToGame[roomId].currWord.toLowerCase() === data.message.toLowerCase()) {
+                if (!roomToGame[roomId].hasGuessed(socket.id) &&
+                socketToPlayer[socket.id].playerId !== roomToGame[roomId].currPlayer) {
+                    isCorrect = true;
+                    socketToPlayer[socket.id].incrementScore(1);
+                    roomToGame[roomId].addCorrectGuesser(socket.id);
+                    io.to(roomId).emit('correctGuess', {game: roomToGame[roomId].toJson(), userId: socket.id, user: socketToPlayer[socket.id]});
 
-                // Everyone has guessed the word
-                if (roomToGame[roomId].correctGuess.length === rooms[roomId].length - 1) {
-                    let correctWord = roomToGame[roomId].currWord;
-                    io.to(roomId).emit('showRoundStats', {
-                        correctWord: correctWord, msg: 'All players guessed the word!'});
+                    // Everyone has guessed the word
+                    if (roomToGame[roomId].correctGuess.length === rooms[roomId].length - 1) {
+                        let correctWord = roomToGame[roomId].currWord;
+                        io.to(roomId).emit('showRoundStats', {
+                            correctWord: correctWord, msg: 'All players guessed the word!'});
+                    }
                 }
             }
-        }
 
-        // Broadcast guess to all players if not correct
-        if (!isCorrect) {
-            io.to(roomId).emit('chatMessage', {
-                name: data.name, 
-                message: data.message, 
-                timestamp: new Date().getTime()
-            });
+            // Broadcast guess to all players if not correct
+            if (!isCorrect) {
+                io.to(roomId).emit('chatMessage', {
+                    name: data.name, 
+                    message: data.message, 
+                    timestamp: new Date().getTime()
+                });
+            }
+        } catch(e) {
+            console.log(e);
         }
     });
 
     // New round beginning
     socket.on('nextRound', (data) => {
-        roomToGame[data.roomId].nextPlayer();
-    
-        // End game after 3 rounds, show leaderboard
-        if (roomToGame[data.roomId].currRound >= 4) {
-            io.to(data.roomId).emit('leaderboard');
+        try {
+            roomToGame[data.roomId].nextPlayer();
+        
+            // End game after 3 rounds, show leaderboard
+            if (roomToGame[data.roomId].currRound >= 4) {
+                io.to(data.roomId).emit('leaderboard');
 
-            // Clear room data for players
-            for (p of rooms[data.roomId])
-                socketToPlayer[p].reset();
-            delete rooms[data.roomId];
-            delete roomToGame[data.roomId];
+                // Clear room data for players
+                for (p of rooms[data.roomId])
+                    socketToPlayer[p].reset();
+                delete rooms[data.roomId];
+                delete roomToGame[data.roomId];
 
-        }
-        else {
-            let artist;
-            for (let p of rooms[data.roomId]) {
-                if (socketToPlayer[p].playerId === roomToGame[data.roomId].currPlayer) {
-                    artist = socketToPlayer[p].name;
-                    break;
-                }
             }
-            io.to(data.roomId).emit('beginRound', {game: roomToGame[data.roomId].toJson(), artist: artist});
+            else {
+                let artist;
+                for (let p of rooms[data.roomId]) {
+                    if (socketToPlayer[p].playerId === roomToGame[data.roomId].currPlayer) {
+                        artist = socketToPlayer[p].name;
+                        break;
+                    }
+                }
+                io.to(data.roomId).emit('beginRound', {game: roomToGame[data.roomId].toJson(), artist: artist});
+            }
+        } catch(e) {
+            console.log(e);
         }
     });
 
     // Word selected
     socket.on('wordSelected', (data) => {
-        roomToGame[data.roomId].setCurrWord(data.word);
-        io.to(data.roomId).emit('beginDraw', {game: roomToGame[data.roomId].toJson()});
+        try {
+            roomToGame[data.roomId].setCurrWord(data.word);
+            io.to(data.roomId).emit('beginDraw', {game: roomToGame[data.roomId].toJson()});
+        } catch(e) {
+            console.log(e);
+        }
     });
     
     // Timer update 
@@ -207,53 +227,61 @@ io.on('connection', (socket) => {
     });
 
     socket.on('timeUp', (data) => {
-        let correctWord = roomToGame[data.roomId].currWord;
-        io.to(data.roomId).emit('showRoundStats', { correctWord: correctWord, msg: 'Time Up!'})
+        try {
+            let correctWord = roomToGame[data.roomId].currWord;
+            io.to(data.roomId).emit('showRoundStats', { correctWord: correctWord, msg: 'Time Up!'})
+        } catch(e) {
+            console.log(e);
+        }
     });
 
     // Client disconnected
     socket.on('disconnect', () => {
-        let roomId = socketToPlayer[socket.id].roomId;
-        let name = socketToPlayer[socket.id].name;
-        if (roomId) {
-            rooms[roomId] = rooms[roomId].filter(user => {
-                return user !== socket.id;
-            });
-            socket.leave(roomId);
-            if (rooms[roomId].length < 2) {
-                for (let player of rooms[roomId]) 
-                    socketToPlayer[player].roomId = null;
-                
-                delete rooms[roomId];
-                io.to(roomId).emit('endgame');
-            }
-            else {
-                
-                io.to(roomId).emit('playerDisconnected', {id: socket.id});
-                io.to(roomId).emit('chatMessage', {
-                    name: 'Server', 
-                    message: name + ' has disconnected.', 
-                    timestamp: new Date().getTime()
+        try {
+            let roomId = socketToPlayer[socket.id].roomId;
+            let name = socketToPlayer[socket.id].name;
+            if (roomId) {
+                rooms[roomId] = rooms[roomId].filter(user => {
+                    return user !== socket.id;
                 });
-                
-                // Add disconnected player to skip list
-                roomToGame[roomId].addSkip(socketToPlayer[socket.id].playerId, socket.id);
+                socket.leave(roomId);
+                if (rooms[roomId].length < 2) {
+                    for (let player of rooms[roomId]) 
+                        socketToPlayer[player].roomId = null;
+                    
+                    delete rooms[roomId];
+                    io.to(roomId).emit('endgame');
+                }
+                else {
+                    
+                    io.to(roomId).emit('playerDisconnected', {id: socket.id});
+                    io.to(roomId).emit('chatMessage', {
+                        name: 'Server', 
+                        message: name + ' has disconnected.', 
+                        timestamp: new Date().getTime()
+                    });
+                    
+                    // Add disconnected player to skip list
+                    roomToGame[roomId].addSkip(socketToPlayer[socket.id].playerId, socket.id);
 
-                // If the player currently drawing disconnects, change turns
-                if (roomToGame[roomId].currPlayer === socketToPlayer[socket.id].playerId) {
-                    roomToGame[roomId].nextPlayer();
-                    let artist;
-                    for (let p of rooms[roomId]) {
-                        if (socketToPlayer[p].playerId === roomToGame[roomId].currPlayer) {
-                            artist = socketToPlayer[p].name;
-                            break;
+                    // If the player currently drawing disconnects, change turns
+                    if (roomToGame[roomId].currPlayer === socketToPlayer[socket.id].playerId) {
+                        roomToGame[roomId].nextPlayer();
+                        let artist;
+                        for (let p of rooms[roomId]) {
+                            if (socketToPlayer[p].playerId === roomToGame[roomId].currPlayer) {
+                                artist = socketToPlayer[p].name;
+                                break;
+                            }
                         }
+                        io.to(roomId).emit('beginRound', {game: roomToGame[roomId].toJson(), artist: artist});
                     }
-                    io.to(roomId).emit('beginRound', {game: roomToGame[roomId].toJson(), artist: artist});
                 }
             }
+            delete socketToPlayer[socket.id];
+        } catch(e) {
+            console.log(e);
         }
-        delete socketToPlayer[socket.id];
     });
 
 
