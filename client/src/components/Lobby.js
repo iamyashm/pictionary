@@ -3,7 +3,7 @@ import GridList from '@material-ui/core/GridList';
 import GridListTile from '@material-ui/core/GridListTile';
 import 'font-awesome/css/font-awesome.min.css';
 import '../styles/Lobby.css';
-import { Button, IconButton } from '@material-ui/core';
+import { Button } from '@material-ui/core';
 import { Redirect } from 'react-router-dom';
 import socket from '../service/socket';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
