@@ -294,7 +294,8 @@ export class Game extends Component {
                         color: colorInput.value,
                         weight: weight.value
                     }
-                    if (p.mouseY > 72 && p.pmouseY  > 72 ) {
+                    console.log(p.mouseY, p.pmouseY, weight.value);
+                    if ((p.mouseY - weight.value / 2) >= 70 && (p.pmouseY - weight.value / 2)  >= 70) {
                         socket.emit('mouse', data);
                         p.stroke(colorInput.value);
                         p.strokeWeight(weight.value);

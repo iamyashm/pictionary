@@ -24,7 +24,10 @@ const port = process.env.PORT || 5000;
 const server = app.listen(port, () => {
     console.log('Listening on port ' + port);
 });
-const io = socket(server);
+const io = socket(server, {
+    pingTimeout: 45000, 
+    pingInterval: 25000
+});
 
 var rawdata = fs.readFileSync('wordlist.json');
 var wordlist = JSON.parse(rawdata)['words'];
